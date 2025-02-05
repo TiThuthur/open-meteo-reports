@@ -61,17 +61,25 @@ def create_a_linear_graph(hourly_dataframe: pd.DataFrame, collumn: str, title: s
     plt.savefig(nom_graphique, bbox_inches="tight")  # sauvegarde du graphique
     plt.close()  # ferme le graphique pour éviter l'affichage
     return nom_graphique
-def create_a_gradient_graph(hourly_dataframe: pd.DataFrame, collumn: str, title: str):
 
-    temperature_matrix = np.array(hourly_dataframe[collumn]).reshape(-1, 1)
-    #plt.figure(figsize=(20, 10))
-    fig,ax = plt.subplots()
-    im = ax.imshow(temperature_matrix,cmap="coolwarm", aspect="auto")
-    ax.set_yticks(range(len(hourly_dataframe)))
-    ax.set_yticklabels(hourly_dataframe["date"])
+
+def create_a_gradient_graph(hourly_dataframe: pd.DataFrame, collumn: str, title: str):
+    # 1 --- passage de la colonne du dataFrame en matrice 2D
+    temperature_matrix = np.tile(hourly_dataframe[collumn], (10, 1))  # répétition de 10
+    # plt.figure(figsize=(20, 10))
+    fig, ax = plt.subplots()
+    # 2 --- création du graphique à 2D
+    im = ax.imshow(temperature_matrix, cmap="coolwarm", aspect="auto", origin="lower")
+    # 3 --- format date
+    num_labels = len(hourly_dataframe)
+    step = max(1, num_labels // 5)  # affichage de environ 5 labelle sur le graph
+    ax.set_xticks(range(0, num_labels, step))
+    # ax.set_yticks(range(0, num_labels, step))
+    ax.set_xticklabels(hourly_dataframe["date"].dt.strftime("%H:%M")[::step], rotation=45)
     cbar = plt.colorbar(im, ax=ax)
     cbar.set_label("Température (°C)")
     plt.show()
+
 
 # 1--- mise en place des différents outils utilisés
 cache_session = requests_cache.CachedSession(".cache", expire_after=3600)
@@ -85,7 +93,7 @@ url = "https://api.open-meteo.com/v1/forecast"
 params = {
     "latitude": 44.58184,  # exemple pour plusieurs localisation [44.58184,44]
     "longitude": -0.039164,  # exemple pour plusieurs localisation [-0.039164,-0,04]
-    "hourly": ["temperature_2m", "relative_humidity_2m","apparent_temperature"]
+    "hourly": ["temperature_2m", "relative_humidity_2m", "apparent_temperature"]
 }
 
 # 2 --- request à l'API
@@ -106,13 +114,16 @@ hourly_data["apparent_temperature"] = create_numpy_from_hourly(hourly, 2)
 hourly_dataFrame = pd.DataFrame(data=hourly_data)  # création d'un dataFrame à partir du dict précédement créé
 
 # 4 --- création des graphiques
-nom_graphique1 = create_a_linear_graph(hourly_dataFrame, "temperature_2m", "Évolution de la température", "Température °C",
-                                "red")
-nom_graphique2 = create_a_linear_graph(hourly_dataFrame, "relative_humidity_2m", "Évolution de l'humidité", "Humidité %",
-                                "blue")
-nom_graphique3=create_a_linear_graph(hourly_dataFrame, "apparent_temperature", "Évolution de la température apparente", "Température °C", "green")
+nom_graphique1 = create_a_linear_graph(hourly_dataFrame, "temperature_2m", "Évolution de la température",
+                                       "Température °C",
+                                       "red")
+nom_graphique2 = create_a_linear_graph(hourly_dataFrame, "relative_humidity_2m", "Évolution de l'humidité",
+                                       "Humidité %",
+                                       "blue")
+nom_graphique3 = create_a_linear_graph(hourly_dataFrame, "apparent_temperature",
+                                       "Évolution de la température apparente", "Température °C", "green")
 
-create_a_gradient_graph(hourly_dataFrame,"temperature_2m","Évolution de la température")
+create_a_gradient_graph(hourly_dataFrame, "temperature_2m", "Évolution de la température")
 # 5 --- création du pdf
 pdf_filename = "rapport.pdf"
 c = canvas.Canvas(pdf_filename, pagesize=letter)
